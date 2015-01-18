@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="http://w2ui.com/src/w2ui-1.4.2.min.css" />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript" src="http://w2ui.com/src/w2ui-1.4.2.min.js"></script>
+</head>
+<body>
+<div id="layout" style="width: 100%; height: 400px;"></div>
+<div id="toolbar" style="padding: 4px; border: 1px solid silver; border-radius: 3px"></div>
+
+<audio id="audio" src="" type="audio/mpeg"></audio>
+
+<div id="form" style="width: 750px;">
+    <div class="w2ui-page page-0">
+        <div class="w2ui-field">
+            <label>Playlist Query:</label>
+            <div>
+                <input name="query" type="text" maxlength="100" size="60"/>
+
+        <button class="btn" name="search">Search</button>
+        </div>
+            </div>
+    
+</div>
+</div>
+
+
+    <div id="grid" style="width: 100%; height: 500px;"></div>
+</body>
+<script>
+
+var BEETSWEB='http://beetsweb:8337';
+var BEETSQUERY='80S';
+
+var beetlist;
+
+var musicplayer=document.getElementById('audio');
+var track_position = 0;
+
+function shuffle(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex ;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+}
+
+
+$(function () {    
+
+    musicplayer.addEventListener("ended", songEnded);
+
+    setInterval(function(){ 
+    document.getElementById("songposition").innerHTML = minsec(musicplayer.currentTime);
+}, 1000);
+
+    function minsec(time) {
+        time = Number(time);
+        var minutes = Math.floor(time / 60);
+        var seconds = Math.floor(time - minutes * 60);
+        if (seconds < 10) {
+            seconds = '0' + seconds.toString();
+        } else {
+            seconds = seconds.toString();
+        }
+        return(minutes.toString() + ':' + seconds);
+    }
+
+    function loadSong(index) {
+        
+        document.getElementById("artist").innerHTML = beetlist[index].artist;
+        document.getElementById("title").innerHTML = beetlist[index].title;
+        document.getElementById("album").innerHTML = beetlist[index].album;
+        document.getElementById("year").innerHTML = beetlist[index].year;
+        document.getElementById("lyrics").innerHTML = beetlist[index].lyrics;
+        document.getElementById("art").innerHTML = '<img widht=200 height=200 src="' + BEETSWEB + '/album/' + beetlist[index].album_id + '/art">';
+        musicplayer.pause();
+        musicplayer.src = BEETSWEB + '/item/' + beetlist[index].id + '/file';
+        musicplayer.play();
+        document.getElementById("songduration").innerHTML = minsec(beetlist[index].length); 
+
+        w2ui.grid.selectNone();
+        w2ui.grid.select(index);
+        track_position = index;
+    }
+
+    function songPlay() {
+        musicplayer.play();
+    }
+
+    function songPause() {
+        musicplayer.pause();
+    }
+
+    function songNext() {
+      if (track_position < beetlist.length-1) {
+          track_position += 1;
+      } else {
+          track_position = 0;
+      }
+      loadSong(track_position);
+    }
+
+    function songPrev() {
+      if (track_position > 0) {
+          track_position -= 1;
+      } else {
+          track_position = tracklist.length-1;
+      }
+      loadSong(tracklist[track_position]);
+  }
+
+
+    function songEnded() {
+        songNext();
+    }
+
+    function load_beets_query(query) {
+    $.get(BEETSWEB + '/item/query/' + query)
+            .success(function(response){
+                beetlist = response.results;
+                beetlist = beetlist.slice(0, 1000);
+                shuffle(beetlist);
+                for (var i=0; i < beetlist.length; i++) {
+                    beetlist[i].recid = i;
+                    beetlist[i].art = '<img width=10 height=10 src="' + BEETSWEB + '/album/' + beetlist[i].album_id + '/art">';
+                }
+                w2ui.grid.records = beetlist;
+                w2ui.grid.reset(); 
+                loadSong(0);
+                songPause();
+            });
+    }
+
+    var pstyle = 'border: 1px solid #dfdfdf; padding: 5px;';
+    $('#layout').w2layout({
+        name: 'layout',
+        panels: [
+            { type: 'top', size: 55, style: pstyle, content: '<span id="artist"></span> - <span id="title"></span><br><span id="album"></span> (<span id="year"></span>)' },
+            { type: 'left', size: 210, style: pstyle, content: '<div id="art"></div>' },
+            { type: 'main', style: pstyle, content: '<pre id="lyrics"></pre' }
+        ]
+    });
+
+    $('#toolbar').w2toolbar({
+        name: 'toolbar',
+        items: [
+            { type: 'button',  id: 'prev',  caption: 'Prev', icon: 'fa fa-step-backward', hint: 'Hint for item 1' },
+            { type: 'button',  id: 'play',  caption: 'Play', icon: 'fa fa-play', hint: 'Hint for item 2' },
+            { type: 'button',  id: 'pause',  caption: 'Pause', icon: 'fa fa-pause', hint: 'Hint for item 2' },
+            { type: 'button',  id: 'next',  caption: 'Next', icon: 'fa fa-step-forward', hint: 'Hint for item 3' },
+            { type: 'break',  id: 'break0' },
+            { type: 'html',  id: 'position', html: '<span id="songposition">00:00</span>' },
+            { type: 'break',  id: 'break1' },
+            { type: 'html',  id: 'duration', html: '<span id="songduration">00:00</span>' },
+        ],
+        onClick: function (event) {
+            console.log('Target: '+ event.target, event);
+            if (event.target == 'play') {
+                songPlay();
+            }
+            if (event.target == 'pause') {
+                songPause();
+            }
+            if (event.target == 'next') {
+                songNext();
+            }
+            if (event.target == 'prev') {
+                songPrev();
+            }
+        }
+    });
+
+  $('#grid').w2grid({
+    name: 'grid',
+    header: 'List of Names',
+    show: {
+        toolbar: false,
+        footer: true
+    },
+    columns: [
+        { field: 'id', caption: 'ID', size: '50px', sortable: false, attr: 'align=center' },
+        { field: 'art', caption: 'Art', size: '10px', sortable: false, resizable: true },
+        { field: 'artist', caption: 'Artist', size: '10%', sortable: false, resizable: true },
+        { field: 'title', caption: 'Title', size: '30%', sortable: false, resizable: true },
+        { field: 'album', caption: 'Album', size: '30%', sortable: false, resizable: true },
+        { field: 'year', caption: 'Year', size: '50px', sortable: false, resizable: true },
+    ],
+    searches: [
+        { field: 'artist', caption: 'Artist', type: 'text' },
+        { field: 'album', caption: 'Album', type: 'text' },
+    ],
+    sortData: [{ field: 'recid', direction: 'ASC' }],
+    records: beetlist,
+    click : function (recid, event) {
+                console.log('Clicked Grid: '+ recid);
+                loadSong(recid); 
+      }
+}); 
+
+   $('#form').w2form({ 
+        name  : 'form',
+        url   : 'server/post',
+        fields: [
+            { field: 'query', type: 'text', required: true },
+        ],
+        actions: {
+            search: function () {
+                console.log('Query: '+ this.record.query);
+                load_beets_query(this.record.query);
+            }
+        }
+    });
+
+});
+
+</script>
+</html>
