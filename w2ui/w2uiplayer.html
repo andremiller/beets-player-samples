@@ -80,7 +80,7 @@ $(function () {
     }
 
     function loadSong(index) {
-        
+        track_position = parseInt(index);
         document.getElementById("artist").innerHTML = beetlist[index].artist;
         document.getElementById("title").innerHTML = beetlist[index].title;
         document.getElementById("album").innerHTML = beetlist[index].album;
@@ -94,7 +94,6 @@ $(function () {
 
         w2ui.grid.selectNone();
         w2ui.grid.select(index);
-        track_position = index;
     }
 
     function songPlay() {
@@ -150,8 +149,9 @@ $(function () {
                     beetlist[i].recid = i;
                     beetlist[i].art = '<img width=10 height=10 src="' + BEETSWEB + '/album/' + beetlist[i].album_id + '/art">';
                 }
+                w2ui.grid.clear();
                 w2ui.grid.records = beetlist;
-                w2ui.grid.reset(); 
+                w2ui.grid.refresh();
                 w2popup.close();
                 loadSong(0);
                 songPause();
