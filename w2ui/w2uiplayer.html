@@ -143,8 +143,8 @@ $(function () {
     $.get(BEETSWEB + '/item/query/' + query)
             .success(function(response){
                 beetlist = response.results;
-                beetlist = beetlist.slice(0, 1000);
                 shuffle(beetlist);
+                beetlist = beetlist.slice(0, 1000);
                 for (var i=0; i < beetlist.length; i++) {
                     beetlist[i].recid = i;
                     beetlist[i].art = '<img width=10 height=10 src="' + BEETSWEB + '/album/' + beetlist[i].album_id + '/art">';
